@@ -80,10 +80,12 @@ import com.example.data.model.PostType
 import com.example.data.model.ProfileLayoutStyle
 import com.example.data.model.UiState
 import com.example.ui.SocialLoreViewModel
+import com.example.ui.components.ColorSwatchField
 import com.example.ui.components.EmptyLoreState
 import com.example.ui.components.FontPickerDialog
 import com.example.ui.components.LoreAvatar
 import com.example.ui.components.LoreCard
+import com.example.ui.components.LoreColorPickerDialog
 import com.example.ui.components.LoreImage
 import com.example.ui.components.LoreThemedBackground
 import com.example.ui.theme.LocalLoreTheme
@@ -93,6 +95,16 @@ import com.example.ui.theme.parseHexColor
 import com.example.ui.theme.toHexString
 import com.example.util.ImageUtils
 import kotlinx.coroutines.launch
+
+private enum class ProfileColorTarget(val label: String) {
+    BACKGROUND("Background"),
+    CARD("Card Background"),
+    GRADIENT_START("Gradient Start"),
+    GRADIENT_END("Gradient End"),
+    ACCENT("Accent"),
+    TEXT("Text"),
+    BORDER("Border")
+}
 
 @Composable
 fun ProfileScreen(
@@ -576,14 +588,54 @@ private fun ProfileCustomizerDialog(
     var musicUrl by remember { mutableStateOf(profile.profileMusicUrl ?: "") }
     var layoutStyle by remember { mutableStateOf(ProfileLayoutStyle.fromRaw(profile.layoutStyle)) }
     var selectedThemeId by remember { mutableStateOf(profile.themeId) }
-    var bgHex by remember { mutableStateOf(profile.bgColorHex ?: "") }
-    var accentHex by remember { mutableStateOf(profile.accentColorHex ?: "") }
-    var borderHex by remember { mutableStateOf(profile.borderColorHex ?: "") }
+    val initialBaseTheme = remember(profile.themeId, customThemes) {
+        ThemeLibrary.findTheme(profile.themeId, customThemes)
+    }
+    var bgHex by remember { mutableStateOf(profile.bgColorHex ?: initialBaseTheme.background.toHexString()) }
+    var gradStartHex by remember { mutableStateOf(profile.gradientStartHex ?: initialBaseTheme.gradientStart.toHexString()) }
+    var gradEndHex by remember { mutableStateOf(profile.gradientEndHex ?: initialBaseTheme.gradientEnd.toHexString()) }
+    var cardHex by remember { mutableStateOf(profile.cardColorHex ?: initialBaseTheme.cardColor.toHexString()) }
+    var textHex by remember { mutableStateOf(profile.textColorHex ?: initialBaseTheme.textPrimary.toHexString()) }
+    var accentHex by remember { mutableStateOf(profile.accentColorHex ?: initialBaseTheme.accent.toHexString()) }
+    var borderHex by remember { mutableStateOf(profile.borderColorHex ?: initialBaseTheme.borderColor.toHexString()) }
     var borderWidth by remember { mutableFloatStateOf((profile.borderWidthDp ?: 1.5).toFloat()) }
     var cardOpacity by remember { mutableFloatStateOf((profile.cardOpacity ?: 0.92).toFloat()) }
     var headingFont by remember { mutableStateOf(profile.headingFont ?: "Playfair Display") }
     var bodyFont by remember { mutableStateOf(profile.bodyFont ?: "Plus Jakarta Sans") }
     var fontPickerTarget by remember { mutableStateOf<String?>(null) }
+    var activeColorTarget by remember { mutableStateOf<ProfileColorTarget?>(null) }
+
+    val selectedBaseTheme = remember(selectedThemeId, customThemes) {
+        ThemeLibrary.findTheme(selectedThemeId, customThemes)
+    }
+    val previewProfileTheme = remember(
+        selectedBaseTheme,
+        bgHex,
+        gradStartHex,
+        gradEndHex,
+        cardHex,
+        textHex,
+        accentHex,
+        borderHex,
+        borderWidth,
+        cardOpacity,
+        wallpaperUrl
+    ) {
+        val resolvedText = parseHexColor(textHex, selectedBaseTheme.textPrimary)
+        selectedBaseTheme.copy(
+            background = parseHexColor(bgHex, selectedBaseTheme.background),
+            gradientStart = parseHexColor(gradStartHex, selectedBaseTheme.gradientStart),
+            gradientEnd = parseHexColor(gradEndHex, selectedBaseTheme.gradientEnd),
+            cardColor = parseHexColor(cardHex, selectedBaseTheme.cardColor),
+            textPrimary = resolvedText,
+            textSecondary = resolvedText.copy(alpha = 0.74f),
+            accent = parseHexColor(accentHex, selectedBaseTheme.accent),
+            borderColor = parseHexColor(borderHex, selectedBaseTheme.borderColor),
+            borderWidthDp = borderWidth,
+            cardOpacity = cardOpacity,
+            bgImageUrl = wallpaperUrl ?: selectedBaseTheme.bgImageUrl
+        )
+    }
 
     var pendingImageTarget by remember { mutableStateOf("avatar") }
     val imagePicker = rememberLauncherForActivityResult(
@@ -632,6 +684,79 @@ private fun ProfileCustomizerDialog(
                     Text("Customize Personal Space", style = MaterialTheme.typography.titleLarge)
                     IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, contentDescription = "Close") }
                 }
+
+                // Live Personal Space Preview Card
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            Brush.linearGradient(
+                                listOf(
+                                    previewProfileTheme.gradientStart,
+                                    previewProfileTheme.background,
+                                    previewProfileTheme.gradientEnd
+                                )
+                            )
+                        )
+                ) {
+                    if (!wallpaperUrl.isNullOrBlank()) {
+                        LoreImage(
+                            imageUrl = wallpaperUrl,
+                            contentDescription = null,
+                            modifier = Modifier.matchParentSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .background(previewProfileTheme.background.copy(alpha = 0.65f))
+                        )
+                    }
+                    Box(modifier = Modifier.padding(10.dp)) {
+                        LoreCard(
+                            theme = previewProfileTheme,
+                            contentPadding = PaddingValues(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    displayName.ifBlank { "My Space" },
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = previewProfileTheme.accent,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = previewProfileTheme.accent.copy(alpha = 0.18f),
+                                    border = BorderStroke(1.dp, previewProfileTheme.accent)
+                                ) {
+                                    Text(
+                                        layoutStyle.displayName,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = previewProfileTheme.accent,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                tagline.ifBlank { "Live profile style preview" },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = previewProfileTheme.textPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
 
                 Column(
                     modifier = Modifier
@@ -744,6 +869,10 @@ private fun ProfileCustomizerDialog(
                                     .clickable {
                                         selectedThemeId = spec.id
                                         bgHex = spec.background.toHexString()
+                                        gradStartHex = spec.gradientStart.toHexString()
+                                        gradEndHex = spec.gradientEnd.toHexString()
+                                        cardHex = spec.cardColor.toHexString()
+                                        textHex = spec.textPrimary.toHexString()
                                         accentHex = spec.accent.toHexString()
                                         borderHex = spec.borderColor.toHexString()
                                     }
@@ -763,30 +892,69 @@ private fun ProfileCustomizerDialog(
                         }
                     }
 
-                    Text("Profile Colors & Borders", style = MaterialTheme.typography.titleSmall)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = bgHex,
-                            onValueChange = { bgHex = it },
-                            label = { Text("BG #Hex") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
+                    Text("Profile Colors (Tap any swatch to customize)", style = MaterialTheme.typography.titleSmall)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        ColorSwatchField(
+                            label = "Background",
+                            colorHex = bgHex,
+                            fallbackColor = selectedBaseTheme.background,
+                            onClick = { activeColorTarget = ProfileColorTarget.BACKGROUND },
+                            modifier = Modifier.weight(1f),
+                            testTag = "profile_color_bg"
                         )
-                        OutlinedTextField(
-                            value = accentHex,
-                            onValueChange = { accentHex = it },
-                            label = { Text("Accent #Hex") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
-                        )
-                        OutlinedTextField(
-                            value = borderHex,
-                            onValueChange = { borderHex = it },
-                            label = { Text("Border #Hex") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
+                        ColorSwatchField(
+                            label = "Card",
+                            colorHex = cardHex,
+                            fallbackColor = selectedBaseTheme.cardColor,
+                            onClick = { activeColorTarget = ProfileColorTarget.CARD },
+                            modifier = Modifier.weight(1f),
+                            testTag = "profile_color_card"
                         )
                     }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        ColorSwatchField(
+                            label = "Gradient Start",
+                            colorHex = gradStartHex,
+                            fallbackColor = selectedBaseTheme.gradientStart,
+                            onClick = { activeColorTarget = ProfileColorTarget.GRADIENT_START },
+                            modifier = Modifier.weight(1f),
+                            testTag = "profile_color_grad_start"
+                        )
+                        ColorSwatchField(
+                            label = "Gradient End",
+                            colorHex = gradEndHex,
+                            fallbackColor = selectedBaseTheme.gradientEnd,
+                            onClick = { activeColorTarget = ProfileColorTarget.GRADIENT_END },
+                            modifier = Modifier.weight(1f),
+                            testTag = "profile_color_grad_end"
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        ColorSwatchField(
+                            label = "Accent",
+                            colorHex = accentHex,
+                            fallbackColor = selectedBaseTheme.accent,
+                            onClick = { activeColorTarget = ProfileColorTarget.ACCENT },
+                            modifier = Modifier.weight(1f),
+                            testTag = "profile_color_accent"
+                        )
+                        ColorSwatchField(
+                            label = "Text",
+                            colorHex = textHex,
+                            fallbackColor = selectedBaseTheme.textPrimary,
+                            onClick = { activeColorTarget = ProfileColorTarget.TEXT },
+                            modifier = Modifier.weight(1f),
+                            testTag = "profile_color_text"
+                        )
+                    }
+                    ColorSwatchField(
+                        label = "Border",
+                        colorHex = borderHex,
+                        fallbackColor = selectedBaseTheme.borderColor,
+                        onClick = { activeColorTarget = ProfileColorTarget.BORDER },
+                        modifier = Modifier.fillMaxWidth(),
+                        testTag = "profile_color_border"
+                    )
 
                     Text("Border Width: ${String.format("%.1f", borderWidth)}dp", style = MaterialTheme.typography.labelMedium)
                     Slider(value = borderWidth, onValueChange = { borderWidth = it }, valueRange = 0f..6f)
@@ -834,10 +1002,10 @@ private fun ProfileCustomizerDialog(
                                     layoutStyle = layoutStyle,
                                     themeId = selectedThemeId,
                                     bgColorHex = bgHex.takeIf { it.isNotBlank() },
-                                    gradientStartHex = null,
-                                    gradientEndHex = null,
-                                    cardColorHex = null,
-                                    textColorHex = null,
+                                    gradientStartHex = gradStartHex.takeIf { it.isNotBlank() },
+                                    gradientEndHex = gradEndHex.takeIf { it.isNotBlank() },
+                                    cardColorHex = cardHex.takeIf { it.isNotBlank() },
+                                    textColorHex = textHex.takeIf { it.isNotBlank() },
                                     accentColorHex = accentHex.takeIf { it.isNotBlank() },
                                     borderColorHex = borderHex.takeIf { it.isNotBlank() },
                                     borderWidthDp = borderWidth.toDouble(),
@@ -849,11 +1017,48 @@ private fun ProfileCustomizerDialog(
                                     onDismiss()
                                 }
                             }
-                        }
+                        },
+                        modifier = Modifier.testTag("save_profile_customization_button")
                     ) { Text("Save Profile") }
                 }
             }
         }
+    }
+
+    activeColorTarget?.let { target ->
+        val (currentHex, fallback) = when (target) {
+            ProfileColorTarget.BACKGROUND -> bgHex to selectedBaseTheme.background
+            ProfileColorTarget.CARD -> cardHex to selectedBaseTheme.cardColor
+            ProfileColorTarget.GRADIENT_START -> gradStartHex to selectedBaseTheme.gradientStart
+            ProfileColorTarget.GRADIENT_END -> gradEndHex to selectedBaseTheme.gradientEnd
+            ProfileColorTarget.ACCENT -> accentHex to selectedBaseTheme.accent
+            ProfileColorTarget.TEXT -> textHex to selectedBaseTheme.textPrimary
+            ProfileColorTarget.BORDER -> borderHex to selectedBaseTheme.borderColor
+        }
+        val updateColor: (String) -> Unit = { newHex ->
+            when (target) {
+                ProfileColorTarget.BACKGROUND -> bgHex = newHex
+                ProfileColorTarget.CARD -> cardHex = newHex
+                ProfileColorTarget.GRADIENT_START -> gradStartHex = newHex
+                ProfileColorTarget.GRADIENT_END -> gradEndHex = newHex
+                ProfileColorTarget.ACCENT -> accentHex = newHex
+                ProfileColorTarget.TEXT -> textHex = newHex
+                ProfileColorTarget.BORDER -> borderHex = newHex
+            }
+        }
+        LoreColorPickerDialog(
+            title = "Pick Profile ${target.label} Color",
+            initialColorHex = currentHex,
+            fallbackColor = fallback,
+            onLivePreview = updateColor,
+            onApply = { appliedHex ->
+                updateColor(appliedHex)
+                activeColorTarget = null
+            },
+            onCancel = {
+                activeColorTarget = null
+            }
+        )
     }
 
     fontPickerTarget?.let { target ->
