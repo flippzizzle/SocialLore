@@ -1,0 +1,527 @@
+{
+  "entities": {
+    "UserAccount": {
+      "title": "UserAccount",
+      "description": "Private user account record including membership status, security lock hash, and preferences.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "description": "User Google email address" },
+        "displayName": { "type": "string", "description": "Display name" },
+        "status": { "type": "string", "enum": ["PENDING", "APPROVED", "SUSPENDED", "BLOCKED", "REMOVED"] },
+        "role": { "type": "string", "enum": ["MEMBER", "ADMIN"] },
+        "friendCode": { "type": "string", "description": "Unique shareable friend code" },
+        "themeId": { "type": "string" },
+        "headingFont": { "type": "string" },
+        "bodyFont": { "type": "string" },
+        "fontScale": { "type": "number" },
+        "headingWeight": { "type": "integer" },
+        "bodyWeight": { "type": "integer" },
+        "appLockType": { "type": "string", "enum": ["NONE", "PIN", "PASSWORD", "BIOMETRIC"] },
+        "appLockHash": { "type": "string" },
+        "appLockSalt": { "type": "string" },
+        "notifMessages": { "type": "boolean" },
+        "notifSocial": { "type": "boolean" },
+        "notifLore": { "type": "boolean" },
+        "notifAdmin": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp" }
+      },
+      "required": ["userId", "email", "displayName", "status", "role", "friendCode", "createdAt", "updatedAt"]
+    },
+    "ApprovedMember": {
+      "title": "ApprovedMember",
+      "description": "Trust anchor document denoting an approved community member.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "approvedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "displayName", "approvedBy", "createdAt"]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Administrator role document.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "email": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "email", "createdAt"]
+    },
+    "WhitelistedEmail": {
+      "title": "WhitelistedEmail",
+      "description": "Pre-whitelisted email entry managed by admin.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "addedByUid": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "addedByUid", "createdAt"]
+    },
+    "MemberProfile": {
+      "title": "MemberProfile",
+      "description": "Customizable MySpace/Hi5-style member profile visible to approved community members (no PII).",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "tagline": { "type": "string" },
+        "bio": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "bannerUrl": { "type": "string" },
+        "wallpaperUrl": { "type": "string" },
+        "profileMusicTitle": { "type": "string" },
+        "profileMusicArtist": { "type": "string" },
+        "profileMusicUrl": { "type": "string" },
+        "friendCode": { "type": "string" },
+        "layoutStyle": { "type": "string", "enum": ["CLASSIC_MYSPACE", "HI5_GRID", "CHRONICLE_CARDS"] },
+        "themeId": { "type": "string" },
+        "bgColorHex": { "type": "string" },
+        "gradientStartHex": { "type": "string" },
+        "gradientEndHex": { "type": "string" },
+        "cardColorHex": { "type": "string" },
+        "textColorHex": { "type": "string" },
+        "accentColorHex": { "type": "string" },
+        "borderColorHex": { "type": "string" },
+        "borderWidthDp": { "type": "number" },
+        "cardOpacity": { "type": "number" },
+        "headingFont": { "type": "string" },
+        "bodyFont": { "type": "string" },
+        "fontScale": { "type": "number" },
+        "status": { "type": "string" },
+        "memberUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "displayName", "friendCode", "layoutStyle", "themeId", "status", "memberUids", "createdAt", "updatedAt"]
+    },
+    "FriendRequest": {
+      "title": "FriendRequest",
+      "description": "Friend request between two approved community members.",
+      "type": "object",
+      "properties": {
+        "fromUid": { "type": "string" },
+        "toUid": { "type": "string" },
+        "fromName": { "type": "string" },
+        "toName": { "type": "string" },
+        "fromAvatar": { "type": "string" },
+        "status": { "type": "string", "enum": ["PENDING", "ACCEPTED", "DECLINED"] },
+        "participantUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["fromUid", "toUid", "fromName", "toName", "status", "participantUids", "createdAt", "updatedAt"]
+    },
+    "Friendship": {
+      "title": "Friendship",
+      "description": "Active friendship connection between two members.",
+      "type": "object",
+      "properties": {
+        "participantUids": { "type": "array" },
+        "participantNames": { "type": "object" },
+        "createdByUid": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["participantUids", "participantNames", "createdByUid", "createdAt"]
+    },
+    "FeedPost": {
+      "title": "FeedPost",
+      "description": "Social feed post or automatic Lore activity announcement.",
+      "type": "object",
+      "properties": {
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorAvatarUrl": { "type": "string" },
+        "postType": { "type": "string", "enum": ["TEXT", "PHOTO", "CHARACTER_ADDED", "LORE_ADDED", "QUOTE_ADDED", "LYRIC_ADDED", "ALBUM_ADDED", "PHOTO_ADDED"] },
+        "text": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "linkedEntityId": { "type": "string" },
+        "linkedEntityTitle": { "type": "string" },
+        "userReactions": { "type": "object" },
+        "commentCount": { "type": "integer" },
+        "memberUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["authorId", "authorName", "postType", "text", "userReactions", "commentCount", "memberUids", "createdAt", "updatedAt"]
+    },
+    "PostComment": {
+      "title": "PostComment",
+      "description": "Comment or threaded reply on a feed post.",
+      "type": "object",
+      "properties": {
+        "postId": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorAvatarUrl": { "type": "string" },
+        "text": { "type": "string" },
+        "parentCommentId": { "type": "string" },
+        "memberUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["postId", "authorId", "authorName", "text", "memberUids", "createdAt", "updatedAt"]
+    },
+    "LoreCharacter": {
+      "title": "LoreCharacter",
+      "description": "Character page in the Lore Book representing a real person in stories.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "nicknames": { "type": "array" },
+        "aliases": { "type": "array" },
+        "portraitUrl": { "type": "string" },
+        "biography": { "type": "string" },
+        "customDetails": { "type": "object" },
+        "createdByUid": { "type": "string" },
+        "createdByName": { "type": "string" },
+        "memberUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "nicknames", "aliases", "biography", "customDetails", "createdByUid", "createdByName", "memberUids", "createdAt", "updatedAt"]
+    },
+    "LoreEntry": {
+      "title": "LoreEntry",
+      "description": "Chronological lore entry belonging to a Lore Book character.",
+      "type": "object",
+      "properties": {
+        "characterId": { "type": "string" },
+        "characterName": { "type": "string" },
+        "title": { "type": "string" },
+        "story": { "type": "string" },
+        "datePrecision": { "type": "string", "enum": ["EXACT", "APPROXIMATE", "UNKNOWN"] },
+        "historicalDateLabel": { "type": "string" },
+        "sortOrderEpoch": { "type": "integer" },
+        "contributorUid": { "type": "string" },
+        "contributorName": { "type": "string" },
+        "memberUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["characterId", "characterName", "title", "story", "datePrecision", "historicalDateLabel", "sortOrderEpoch", "contributorUid", "contributorName", "memberUids", "createdAt", "updatedAt"]
+    },
+    "CharacterRelationship": {
+      "title": "CharacterRelationship",
+      "description": "Connection between two Lore Book characters for relationship maps.",
+      "type": "object",
+      "properties": {
+        "fromCharacterId": { "type": "string" },
+        "fromCharacterName": { "type": "string" },
+        "toCharacterId": { "type": "string" },
+        "toCharacterName": { "type": "string" },
+        "label": { "type": "string" },
+        "category": { "type": "string", "enum": ["FAMILY", "FRIEND", "COWORKER", "NEIGHBOR", "ACQUAINTANCE", "CUSTOM"] },
+        "notes": { "type": "string" },
+        "createdByUid": { "type": "string" },
+        "memberUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["fromCharacterId", "fromCharacterName", "toCharacterId", "toCharacterName", "label", "category", "createdByUid", "memberUids", "createdAt", "updatedAt"]
+    },
+    "QuoteEntry": {
+      "title": "QuoteEntry",
+      "description": "Memorable quote in the Quote Book.",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "attributedToName": { "type": "string" },
+        "attributedType": { "type": "string", "enum": ["CHARACTER", "MEMBER"] },
+        "attributedId": { "type": "string" },
+        "dateLabel": { "type": "string" },
+        "context": { "type": "string" },
+        "category": { "type": "string" },
+        "favoriteByUids": { "type": "array" },
+        "addedByUid": { "type": "string" },
+        "addedByName": { "type": "string" },
+        "memberUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["text", "attributedToName", "attributedType", "category", "favoriteByUids", "addedByUid", "addedByName", "memberUids", "createdAt", "updatedAt"]
+    },
+    "LyricEntry": {
+      "title": "LyricEntry",
+      "description": "Song lyric excerpt in the Song Lyrics Library.",
+      "type": "object",
+      "properties": {
+        "excerpt": { "type": "string" },
+        "songTitle": { "type": "string" },
+        "artist": { "type": "string" },
+        "commentary": { "type": "string" },
+        "songLink": { "type": "string" },
+        "category": { "type": "string" },
+        "favoriteByUids": { "type": "array" },
+        "addedByUid": { "type": "string" },
+        "addedByName": { "type": "string" },
+        "memberUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["excerpt", "songTitle", "artist", "category", "favoriteByUids", "addedByUid", "addedByName", "memberUids", "createdAt", "updatedAt"]
+    },
+    "PhotoAlbum": {
+      "title": "PhotoAlbum",
+      "description": "Community photo album.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "coverImageUrl": { "type": "string" },
+        "ownerUid": { "type": "string" },
+        "ownerName": { "type": "string" },
+        "photoCount": { "type": "integer" },
+        "memberUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "ownerUid", "ownerName", "photoCount", "memberUids", "createdAt", "updatedAt"]
+    },
+    "PhotoItem": {
+      "title": "PhotoItem",
+      "description": "Photograph inside a community album.",
+      "type": "object",
+      "properties": {
+        "albumId": { "type": "string" },
+        "albumTitle": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "caption": { "type": "string" },
+        "dateTakenLabel": { "type": "string" },
+        "taggedCharacterIds": { "type": "array" },
+        "taggedCharacterNames": { "type": "array" },
+        "uploadedByUid": { "type": "string" },
+        "uploadedByName": { "type": "string" },
+        "memberUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["albumId", "albumTitle", "imageUrl", "taggedCharacterIds", "taggedCharacterNames", "uploadedByUid", "uploadedByName", "memberUids", "createdAt", "updatedAt"]
+    },
+    "Conversation": {
+      "title": "Conversation",
+      "description": "Private direct message thread or group chat restricted to participants.",
+      "type": "object",
+      "properties": {
+        "groupChat": { "type": "boolean" },
+        "title": { "type": "string" },
+        "participantUids": { "type": "array" },
+        "participantNames": { "type": "object" },
+        "lastMessageText": { "type": "string" },
+        "lastMessageAt": { "type": "string", "format": "date-time" },
+        "unreadCounts": { "type": "object" },
+        "createdByUid": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["groupChat", "participantUids", "participantNames", "unreadCounts", "createdByUid", "createdAt", "updatedAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Message inside a private conversation.",
+      "type": "object",
+      "properties": {
+        "conversationId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "senderAvatarUrl": { "type": "string" },
+        "text": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "participantUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["conversationId", "senderId", "senderName", "text", "participantUids", "createdAt"]
+    },
+    "UserNotification": {
+      "title": "UserNotification",
+      "description": "Real-time notification scoped to a user.",
+      "type": "object",
+      "properties": {
+        "recipientUid": { "type": "string" },
+        "senderUid": { "type": "string" },
+        "senderName": { "type": "string" },
+        "category": { "type": "string" },
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "targetRoute": { "type": "string" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["recipientUid", "senderUid", "senderName", "category", "title", "body", "targetRoute", "read", "createdAt", "updatedAt"]
+    },
+    "CustomTheme": {
+      "title": "CustomTheme",
+      "description": "User-created custom theme configuration.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "darkTheme": { "type": "boolean" },
+        "bgColorHex": { "type": "string" },
+        "gradientStartHex": { "type": "string" },
+        "gradientEndHex": { "type": "string" },
+        "cardColorHex": { "type": "string" },
+        "textColorHex": { "type": "string" },
+        "accentColorHex": { "type": "string" },
+        "borderColorHex": { "type": "string" },
+        "borderWidthDp": { "type": "number" },
+        "cardOpacity": { "type": "number" },
+        "bgImageUrl": { "type": "string" },
+        "headingFont": { "type": "string" },
+        "bodyFont": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "darkTheme", "bgColorHex", "gradientStartHex", "gradientEndHex", "cardColorHex", "textColorHex", "accentColorHex", "borderColorHex", "borderWidthDp", "cardOpacity", "headingFont", "bodyFont", "createdAt", "updatedAt"]
+    },
+    "BugReport": {
+      "title": "BugReport",
+      "description": "Submitted bug report.",
+      "type": "object",
+      "properties": {
+        "reporterUid": { "type": "string" },
+        "reporterName": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "stepsToReproduce": { "type": "string" },
+        "affectedScreen": { "type": "string" },
+        "appVersion": { "type": "string" },
+        "deviceInfo": { "type": "string" },
+        "screenshotUrl": { "type": "string" },
+        "status": { "type": "string", "enum": ["OPEN", "RESOLVED"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["reporterUid", "reporterName", "title", "description", "appVersion", "deviceInfo", "status", "createdAt", "updatedAt"]
+    },
+    "AdminAlert": {
+      "title": "AdminAlert",
+      "description": "Administrator alert for pending approvals or bug reports.",
+      "type": "object",
+      "properties": {
+        "alertType": { "type": "string", "enum": ["APPROVAL_REQUIRED", "BUG_REPORT"] },
+        "senderUid": { "type": "string" },
+        "senderName": { "type": "string" },
+        "senderEmail": { "type": "string" },
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "referenceId": { "type": "string" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["alertType", "senderUid", "senderName", "title", "body", "read", "createdAt"]
+    },
+    "MailQueueItem": {
+      "title": "MailQueueItem",
+      "description": "Server-side email delivery queue item formatted for Firebase Trigger Email extension.",
+      "type": "object",
+      "properties": {
+        "to": { "type": "array" },
+        "senderUid": { "type": "string" },
+        "message": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["to", "senderUid", "message", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserAccount" },
+      "description": "Private user account records"
+    },
+    "/approved_members/{userId}": {
+      "schema": { "$ref": "#/entities/ApprovedMember" },
+      "description": "Approved community membership registry"
+    },
+    "/admins/{userId}": {
+      "schema": { "$ref": "#/entities/AdminUser" },
+      "description": "Administrator registry"
+    },
+    "/whitelisted_emails/{emailDocId}": {
+      "schema": { "$ref": "#/entities/WhitelistedEmail" },
+      "description": "Whitelisted email addresses"
+    },
+    "/member_profiles/{userId}": {
+      "schema": { "$ref": "#/entities/MemberProfile" },
+      "description": "Customizable public-within-community member profiles"
+    },
+    "/friend_requests/{requestId}": {
+      "schema": { "$ref": "#/entities/FriendRequest" },
+      "description": "Member friend requests"
+    },
+    "/friendships/{friendshipId}": {
+      "schema": { "$ref": "#/entities/Friendship" },
+      "description": "Member friendships"
+    },
+    "/posts/{postId}": {
+      "schema": { "$ref": "#/entities/FeedPost" },
+      "description": "Community social feed posts"
+    },
+    "/posts/{postId}/comments/{commentId}": {
+      "schema": { "$ref": "#/entities/PostComment" },
+      "description": "Comments and replies on posts"
+    },
+    "/characters/{characterId}": {
+      "schema": { "$ref": "#/entities/LoreCharacter" },
+      "description": "Lore Book character pages"
+    },
+    "/lore_entries/{entryId}": {
+      "schema": { "$ref": "#/entities/LoreEntry" },
+      "description": "Character chronological lore timeline entries"
+    },
+    "/relationships/{relationshipId}": {
+      "schema": { "$ref": "#/entities/CharacterRelationship" },
+      "description": "Character relationship map edges"
+    },
+    "/quotes/{quoteId}": {
+      "schema": { "$ref": "#/entities/QuoteEntry" },
+      "description": "Quote Book entries"
+    },
+    "/lyrics/{lyricId}": {
+      "schema": { "$ref": "#/entities/LyricEntry" },
+      "description": "Song Lyrics Library entries"
+    },
+    "/albums/{albumId}": {
+      "schema": { "$ref": "#/entities/PhotoAlbum" },
+      "description": "Community photo albums"
+    },
+    "/photos/{photoId}": {
+      "schema": { "$ref": "#/entities/PhotoItem" },
+      "description": "Photographs within albums"
+    },
+    "/conversations/{conversationId}": {
+      "schema": { "$ref": "#/entities/Conversation" },
+      "description": "Private direct messages and group chats"
+    },
+    "/conversations/{conversationId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Messages inside private conversations"
+    },
+    "/users/{userId}/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/UserNotification" },
+      "description": "Real-time user notifications"
+    },
+    "/users/{userId}/custom_themes/{themeId}": {
+      "schema": { "$ref": "#/entities/CustomTheme" },
+      "description": "User saved custom themes"
+    },
+    "/bug_reports/{reportId}": {
+      "schema": { "$ref": "#/entities/BugReport" },
+      "description": "Submitted bug reports"
+    },
+    "/admin_alerts/{alertId}": {
+      "schema": { "$ref": "#/entities/AdminAlert" },
+      "description": "Administrator alerts for approvals and bug reports"
+    },
+    "/mail/{mailId}": {
+      "schema": { "$ref": "#/entities/MailQueueItem" },
+      "description": "Email delivery queue for flippzizzle@gmail.com"
+    }
+  }
+}

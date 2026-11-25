@@ -1,0 +1,6 @@
+{
+  "name": "Social Lore",
+  "description": "A private social network and collaborative archive of personal stories, characters, lore, quotes, song lyrics, and photographs for family and close friends.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
